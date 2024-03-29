@@ -59,7 +59,7 @@ namespace Unity.Robotics.ROSTCPConnector
             _msg = msg;
             _lastTime = Time.time;
 
-            if (_callback != null) _callback(msg);
+            if (_callback != null) _callback.Invoke(msg);
         }
     }
 }
