@@ -13,15 +13,15 @@ namespace Unity.Robotics.ROSTCPConnector
     using Utilities;
 
     [Serializable]
-    public class ROSActionServer<TActionGoalMessage, TGoalMessage, 
-                                    TActionFeedbackMessage, TFeedbackMessage, 
-                                    TActionResultMessage, TResultMessage>
-        where TActionGoalMessage : Message, IActionGoalMsgInterface<TGoalMessage>
+    public class ROSActionServer<TActionGoalMessage, TGoalMessage,
+                                    TActionResultMessage, TResultMessage,
+                                    TActionFeedbackMessage, TFeedbackMessage>
+        where TActionGoalMessage : Message, IActionGoalMsgInterface<TGoalMessage>, new()
         where TGoalMessage : Message
-        where TActionFeedbackMessage : Message, IActionFeedbackMsgInterface<TFeedbackMessage>, new()
-        where TFeedbackMessage : Message
         where TActionResultMessage : Message, IActionResultMsgInterface<TResultMessage>, new()
         where TResultMessage : Message
+        where TActionFeedbackMessage : Message, IActionFeedbackMsgInterface<TFeedbackMessage>, new()
+        where TFeedbackMessage : Message
     {
         private class ROSAction
         {
@@ -123,7 +123,7 @@ namespace Unity.Robotics.ROSTCPConnector
             }
 
             msg.status_list = statusListMsgs.ToArray();
-            
+
             return msg;
         }
 
@@ -156,10 +156,12 @@ namespace Unity.Robotics.ROSTCPConnector
             _newPreemptRequestAvailableCallback?.Invoke();
         }
 
-        public void AcceptNewGoal()
+        public TGoalMessage AcceptNewGoal()
         {
             _currentAction = _newAction;
+            SetAccepted();
             _newAction = null;
+            return _currentAction.goal.goal;
         }
 
         public void PublishFeedback(TFeedbackMessage feedback)
@@ -191,11 +193,6 @@ namespace Unity.Robotics.ROSTCPConnector
             resultMsg.result = result;
 
             _resultPublisher.Publish(resultMsg);
-        }
-
-        public bool IsNewGoalAvailable()
-        {
-            return _newAction != null;
         }
 
         public void SetAccepted()
@@ -236,11 +233,21 @@ namespace Unity.Robotics.ROSTCPConnector
         {
             _currentAction?.stateMachine.SetCancelled();
         }
+        public bool IsNewGoalAvailable()
+        {
+            return _newAction != null;
+        }
 
         public bool IsActive()
         {
             if (_currentAction == null) return false;
-            return _currentAction.stateMachine.currentStatus == GoalStatusMsg.ACTIVE;
+            return _currentAction.stateMachine.currentStatus == GoalStatusMsg.ACTIVE || _currentAction.stateMachine.currentStatus == GoalStatusMsg.PREEMPTING;
+        }
+
+        public bool IsPreemptRequested()
+        {
+            if (_currentAction == null) return false;
+            return _currentAction.stateMachine.currentStatus == GoalStatusMsg.PREEMPTING;
         }
     }
 }
