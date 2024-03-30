@@ -6,7 +6,7 @@ namespace Unity.Robotics.ROSTCPConnector
     using MessageGeneration;
 
     [Serializable]
-    public class ROSSubscriber<T> where T : Message
+    public class ROSSubscriber<T> where T : Message, new()
     {
         [SerializeField]
         private string _topic;
@@ -47,6 +47,7 @@ namespace Unity.Robotics.ROSTCPConnector
             
             _ros.Subscribe<T>(_topic, InternalCallback);
 
+            _msg = new T();
             _lastTime = Time.time;
         }
 
