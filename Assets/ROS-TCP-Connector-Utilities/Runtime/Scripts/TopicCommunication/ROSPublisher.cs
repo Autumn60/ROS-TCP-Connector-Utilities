@@ -34,6 +34,7 @@ namespace Unity.Robotics.ROSTCPConnector
             _queueSize = queueSize;
             _latch = latch;
             _autoPublishingFrequency = autoPublishingFrequency;
+            Advertise();
         }
 
         public void Advertise()
