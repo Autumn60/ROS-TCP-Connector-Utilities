@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Unity.Robotics.ROSTCPConnector
 {
-    using Message = MessageGeneration.Message;
+    using MessageGeneration;
 
     [Serializable]
     public class ROSSubscriber<T> where T : Message
@@ -29,6 +29,13 @@ namespace Unity.Robotics.ROSTCPConnector
             }
         }
 
+        public ROSSubscriber(string topic, Action<T> callback = null)
+        {
+            _topic = topic;
+            _callback = callback;
+            Subscribe();
+        }
+            
         public void SetCallback(Action<T> callback)
         {
             _callback = callback;

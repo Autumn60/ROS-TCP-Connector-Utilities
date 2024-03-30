@@ -6,7 +6,7 @@ using Unity.Robotics.ROSTCPConnector.Utilities;
 
 namespace Unity.Robotics.ROSTCPConnector
 {
-    using Message = MessageGeneration.Message;
+    using MessageGeneration;
 
     public class ROSServiceClient<TRequest, TResponse>
         where TRequest : Message

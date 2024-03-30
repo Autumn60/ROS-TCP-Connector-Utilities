@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace Unity.Robotics.ROSTCPConnector
 {
-    using Message = MessageGeneration.Message;
-    using CoroutineHandler = Utilities.CoroutineHandler;
+    using MessageGeneration;
+    using Utilities;
 
     [Serializable]
     public class ROSPublisher<T> where T : Message
@@ -27,6 +27,14 @@ namespace Unity.Robotics.ROSTCPConnector
         private float _lastTime;
 
         public T message { get => _msg; set => _msg = value; }
+
+        public ROSPublisher(string topic, int queueSize = 1, bool latch = false, float autoPublishingFrequency = 0.0f)
+        {
+            _topic = topic;
+            _queueSize = queueSize;
+            _latch = latch;
+            _autoPublishingFrequency = autoPublishingFrequency;
+        }
 
         public void Advertise()
         {

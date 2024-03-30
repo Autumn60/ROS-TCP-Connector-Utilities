@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Unity.Robotics.ROSTCPConnector
 {
-    using Message = MessageGeneration.Message;
+    using MessageGeneration;
 
     public class ROSServiceServer<TRequest, TResponse>
         where TRequest : Message
