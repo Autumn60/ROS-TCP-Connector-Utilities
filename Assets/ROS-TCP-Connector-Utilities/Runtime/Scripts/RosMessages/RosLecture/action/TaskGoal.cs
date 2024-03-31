@@ -8,9 +8,9 @@ using Unity.Robotics.ROSTCPConnector.MessageGeneration;
 namespace RosMessageTypes.RosLecture
 {
     [Serializable]
-    public class TaskGoalMsg : Message
+    public class TaskGoal : Message
     {
-        public const string k_RosMessageName = "ros_lecture_msgs/TaskGoal";
+        public const string k_RosMessageName = "ros_lecture_msgs/Task";
         public override string RosMessageName => k_RosMessageName;
 
         //  Define the goal
@@ -18,21 +18,21 @@ namespace RosMessageTypes.RosLecture
         //  Specify which dishwasher we want to use
         public double duration;
 
-        public TaskGoalMsg()
+        public TaskGoal()
         {
             this.task_id = 0;
             this.duration = 0.0;
         }
 
-        public TaskGoalMsg(uint task_id, double duration)
+        public TaskGoal(uint task_id, double duration)
         {
             this.task_id = task_id;
             this.duration = duration;
         }
 
-        public static TaskGoalMsg Deserialize(MessageDeserializer deserializer) => new TaskGoalMsg(deserializer);
+        public static TaskGoal Deserialize(MessageDeserializer deserializer) => new TaskGoal(deserializer);
 
-        private TaskGoalMsg(MessageDeserializer deserializer)
+        private TaskGoal(MessageDeserializer deserializer)
         {
             deserializer.Read(out this.task_id);
             deserializer.Read(out this.duration);
@@ -46,7 +46,7 @@ namespace RosMessageTypes.RosLecture
 
         public override string ToString()
         {
-            return "TaskGoalMsg: " +
+            return "TaskGoal: " +
             "\ntask_id: " + task_id.ToString() +
             "\nduration: " + duration.ToString();
         }
@@ -58,7 +58,7 @@ namespace RosMessageTypes.RosLecture
 #endif
         public static void Register()
         {
-            MessageRegistry.Register(k_RosMessageName, Deserialize);
+            MessageRegistry.Register(k_RosMessageName, Deserialize, MessageSubtopic.Goal);
         }
     }
 }

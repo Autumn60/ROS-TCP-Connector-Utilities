@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System;
 using UnityEngine;
 
 using RosMessageTypes.Actionlib;
@@ -12,20 +11,19 @@ namespace Unity.Robotics.ROSTCPConnector
     using MessageGeneration;
     using Utilities;
 
-    [Serializable]
-    public class ROSActionServer<TActionGoalMessage, TGoalMessage,
-                                    TActionResultMessage, TResultMessage,
-                                    TActionFeedbackMessage, TFeedbackMessage>
-        where TActionGoalMessage : Message, IActionGoalMsgInterface<TGoalMessage>, new()
-        where TGoalMessage : Message
-        where TActionResultMessage : Message, IActionResultMsgInterface<TResultMessage>, new()
-        where TResultMessage : Message
-        where TActionFeedbackMessage : Message, IActionFeedbackMsgInterface<TFeedbackMessage>, new()
-        where TFeedbackMessage : Message
+    [System.Serializable]
+    public class ROSActionServer<TAction, TActionGoal, TActionResult, TActionFeedback, TGoal, TResult, TFeedback>
+        where TAction : Action<TActionGoal, TActionResult, TActionFeedback, TGoal, TResult, TFeedback>, new()
+        where TActionGoal : ActionGoal<TGoal>, new()
+        where TActionResult : ActionResult<TResult>, new()
+        where TActionFeedback : ActionFeedback<TFeedback>, new()
+        where TGoal : Message
+        where TResult : Message
+        where TFeedback : Message
     {
-        private class ROSAction
+        private class ActionWithStateMachine
         {
-            public TActionGoalMessage goal;
+            public TAction action;
             public ActionStateMachine stateMachine;
         }
 
@@ -40,19 +38,19 @@ namespace Unity.Robotics.ROSTCPConnector
 
         private ROSSubscriber<TimeMsg> _clockSubscriber;
 
-        private ROSSubscriber<TActionGoalMessage> _goalSubscriber;
+        private ROSSubscriber<TActionGoal> _goalSubscriber;
         private ROSSubscriber<GoalIDMsg> _preemptSubscriber;
 
-        private ROSPublisher<TActionFeedbackMessage> _feedbackPublisher;
-        private ROSPublisher<TActionResultMessage> _resultPublisher;
+        private ROSPublisher<TActionFeedback> _feedbackPublisher;
+        private ROSPublisher<TActionResult> _resultPublisher;
         private ROSPublisher<GoalStatusArrayMsg> _statusPublisher;
 
-        private Dictionary<string, ROSAction> _actions;
-        private ROSAction _currentAction;
-        private ROSAction _newAction;
+        private Dictionary<string, ActionWithStateMachine> _actions;
+        private ActionWithStateMachine _currentAction;
+        private ActionWithStateMachine _newAction;
 
-        private Action _newGoalAvailableCallback;
-        private Action _newPreemptRequestAvailableCallback;
+        private System.Action _newGoalAvailableCallback;
+        private System.Action _newPreemptRequestAvailableCallback;
 
         private Coroutine _coroutine;
         private float _lastTime;
@@ -63,25 +61,25 @@ namespace Unity.Robotics.ROSTCPConnector
 
             _clockSubscriber = new ROSSubscriber<TimeMsg>(_clock);
 
-            _goalSubscriber = new ROSSubscriber<TActionGoalMessage>(_action + "/goal", GoalCallback);
+            _goalSubscriber = new ROSSubscriber<TActionGoal>(_action + "/goal", GoalCallback);
             _preemptSubscriber = new ROSSubscriber<GoalIDMsg>(_action + "/cancel", PreemptCallback);
 
-            _feedbackPublisher = new ROSPublisher<TActionFeedbackMessage>(_action + "/feedback");
-            _resultPublisher = new ROSPublisher<TActionResultMessage>(_action + "/result");
+            _feedbackPublisher = new ROSPublisher<TActionFeedback>(_action + "/feedback");
+            _resultPublisher = new ROSPublisher<TActionResult>(_action + "/result");
             _statusPublisher = new ROSPublisher<GoalStatusArrayMsg>(_action + "/status");
 
-            _actions = new Dictionary<string, ROSAction>();
+            _actions = new Dictionary<string, ActionWithStateMachine>();
 
             if (_coroutine != null) CoroutineHandler.StopStaticCoroutine(ref _coroutine);
             _coroutine = CoroutineHandler.StartStaticCoroutine(PublishStatusCoroutine());
         }
 
-        public void RegisterGoalCallback(Action callback)
+        public void RegisterGoalCallback(System.Action callback)
         {
             _newGoalAvailableCallback = callback;
         }
 
-        public void RegisterPreemptCallback(Action callback)
+        public void RegisterPreemptCallback(System.Action callback)
         {
             _newPreemptRequestAvailableCallback = callback;
         }
@@ -117,7 +115,7 @@ namespace Unity.Robotics.ROSTCPConnector
             };
 
             List<GoalStatusMsg> statusListMsgs = new List<GoalStatusMsg>();
-            foreach (ROSAction action in _actions.Values)
+            foreach (ActionWithStateMachine action in _actions.Values)
             {
                 statusListMsgs.Add(action.stateMachine.currentStatusMsg);
             }
@@ -127,21 +125,26 @@ namespace Unity.Robotics.ROSTCPConnector
             return msg;
         }
 
-        private void GoalCallback(TActionGoalMessage msg)
+        private void GoalCallback(TActionGoal msg)
         {
             string id = msg.goal_id.id;
 
             if (_actions.ContainsKey(id))
             {
-                _actions[id].goal = msg;
+                _actions[id].action.action_goal = msg;
                 _actions[id].stateMachine.ReceiveGoal();
                 _newAction = _actions[id];
             }
             else
             {
-                _newAction = new ROSAction()
+                _newAction = new ActionWithStateMachine()
                 {
-                    goal = msg,
+                    action = new TAction()
+                    {
+                        action_goal = msg,
+                        action_result = new TActionResult(),
+                        action_feedback = new TActionFeedback()
+                    },
                     stateMachine = new ActionStateMachine(id)
                 };
                 _actions.Add(id, _newAction);
@@ -156,19 +159,19 @@ namespace Unity.Robotics.ROSTCPConnector
             _newPreemptRequestAvailableCallback?.Invoke();
         }
 
-        public TGoalMessage AcceptNewGoal()
+        public TGoal AcceptNewGoal()
         {
             _currentAction = _newAction;
             SetAccepted();
             _newAction = null;
-            return _currentAction.goal.goal;
+            return _currentAction.action.action_goal.goal;
         }
 
-        public void PublishFeedback(TFeedbackMessage feedback)
+        public void PublishFeedback(TFeedback feedback)
         {
             if (_currentAction == null) return;
 
-            TActionFeedbackMessage feedbackMsg = new TActionFeedbackMessage();
+            TActionFeedback feedbackMsg = new TActionFeedback();
             feedbackMsg.header = new HeaderMsg()
             {
                 stamp = _clockSubscriber.message,
@@ -180,9 +183,9 @@ namespace Unity.Robotics.ROSTCPConnector
             _feedbackPublisher.Publish(feedbackMsg);
         }
 
-        private void PublishResult(TResultMessage result, string text)
+        private void PublishResult(TResult result, string text)
         {
-            TActionResultMessage resultMsg = new TActionResultMessage();
+            TActionResult resultMsg = new TActionResult();
             resultMsg.header = new HeaderMsg()
             {
                 stamp = _clockSubscriber.message,
@@ -205,7 +208,7 @@ namespace Unity.Robotics.ROSTCPConnector
             _currentAction?.stateMachine.SetRejected();
         }
 
-        public void SetSucceeded(TResultMessage result, string text = "")
+        public void SetSucceeded(TResult result, string text = "")
         {
             if (_currentAction == null) return;
 
@@ -213,7 +216,7 @@ namespace Unity.Robotics.ROSTCPConnector
             PublishResult(result, text);
         }
 
-        public void SetAborted(TResultMessage result, string text = "")
+        public void SetAborted(TResult result, string text = "")
         {
             if (_currentAction == null) return;
 
@@ -221,7 +224,7 @@ namespace Unity.Robotics.ROSTCPConnector
             PublishResult(result, text);
         }
 
-        public void SetPreempted(TResultMessage result, string text = "")
+        public void SetPreempted(TResult result, string text = "")
         {
             if (_currentAction == null) return;
 

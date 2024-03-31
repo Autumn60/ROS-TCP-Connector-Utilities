@@ -8,27 +8,27 @@ using Unity.Robotics.ROSTCPConnector.MessageGeneration;
 namespace RosMessageTypes.RosLecture
 {
     [Serializable]
-    public class TaskFeedbackMsg : Message
+    public class TaskFeedback : Message
     {
-        public const string k_RosMessageName = "ros_lecture_msgs/TaskFeedback";
+        public const string k_RosMessageName = "ros_lecture_msgs/Task";
         public override string RosMessageName => k_RosMessageName;
 
         //  Define a feedback message
         public float rate;
 
-        public TaskFeedbackMsg()
+        public TaskFeedback()
         {
             this.rate = 0.0f;
         }
 
-        public TaskFeedbackMsg(float rate)
+        public TaskFeedback(float rate)
         {
             this.rate = rate;
         }
 
-        public static TaskFeedbackMsg Deserialize(MessageDeserializer deserializer) => new TaskFeedbackMsg(deserializer);
+        public static TaskFeedback Deserialize(MessageDeserializer deserializer) => new TaskFeedback(deserializer);
 
-        private TaskFeedbackMsg(MessageDeserializer deserializer)
+        private TaskFeedback(MessageDeserializer deserializer)
         {
             deserializer.Read(out this.rate);
         }
@@ -40,7 +40,7 @@ namespace RosMessageTypes.RosLecture
 
         public override string ToString()
         {
-            return "TaskFeedbackMsg: " +
+            return "TaskFeedback: " +
             "\nrate: " + rate.ToString();
         }
 
@@ -51,7 +51,7 @@ namespace RosMessageTypes.RosLecture
 #endif
         public static void Register()
         {
-            MessageRegistry.Register(k_RosMessageName, Deserialize);
+            MessageRegistry.Register(k_RosMessageName, Deserialize, MessageSubtopic.Feedback);
         }
     }
 }

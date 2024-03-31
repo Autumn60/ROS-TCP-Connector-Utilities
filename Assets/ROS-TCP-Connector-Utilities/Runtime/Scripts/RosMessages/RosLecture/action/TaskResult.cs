@@ -8,27 +8,27 @@ using Unity.Robotics.ROSTCPConnector.MessageGeneration;
 namespace RosMessageTypes.RosLecture
 {
     [Serializable]
-    public class TaskResultMsg : Message
+    public class TaskResult : Message
     {
-        public const string k_RosMessageName = "ros_lecture_msgs/TaskResult";
+        public const string k_RosMessageName = "ros_lecture_msgs/Task";
         public override string RosMessageName => k_RosMessageName;
 
         //  Define the result
         public bool done;
 
-        public TaskResultMsg()
+        public TaskResult()
         {
             this.done = false;
         }
 
-        public TaskResultMsg(bool done)
+        public TaskResult(bool done)
         {
             this.done = done;
         }
 
-        public static TaskResultMsg Deserialize(MessageDeserializer deserializer) => new TaskResultMsg(deserializer);
+        public static TaskResult Deserialize(MessageDeserializer deserializer) => new TaskResult(deserializer);
 
-        private TaskResultMsg(MessageDeserializer deserializer)
+        private TaskResult(MessageDeserializer deserializer)
         {
             deserializer.Read(out this.done);
         }
@@ -40,7 +40,7 @@ namespace RosMessageTypes.RosLecture
 
         public override string ToString()
         {
-            return "TaskResultMsg: " +
+            return "TaskResult: " +
             "\ndone: " + done.ToString();
         }
 
@@ -51,7 +51,7 @@ namespace RosMessageTypes.RosLecture
 #endif
         public static void Register()
         {
-            MessageRegistry.Register(k_RosMessageName, Deserialize);
+            MessageRegistry.Register(k_RosMessageName, Deserialize, MessageSubtopic.Result);
         }
     }
 }
